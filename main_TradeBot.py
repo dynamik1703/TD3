@@ -10,19 +10,27 @@ import OurDDPG
 import DDPG
 
 from trade_env_multi import MyEnv as trade_env
+import matplotlib.pyplot as plt
+
+# RL quick and dirty
+eval_env = trade_env()
+trade_fees = False
+print('trade_fees:', trade_fees)
+eval_env.trade_fees = trade_fees
 
 # Runs policy for X episodes and returns average reward
 # A fixed seed is used for the eval environment
-def eval_policy(policy, env_name, seed, eval_episodes=10):
-	eval_env = gym.make(env_name)
-	eval_env.seed(seed + 100)
+def eval_policy(policy, env_name, seed, eval_episodes=1):
+# 	eval_env = gym.make(env_name)
+# 	eval_env = trade_env()
+# 	eval_env.seed(seed + 100)
 
 	avg_reward = 0.
 	for _ in range(eval_episodes):
-		state, done = eval_env.reset(), False
+		state, done = eval_env.reset(training=False), False
 		while not done:
 			action = policy.select_action(np.array(state))
-			state, reward, done, _ = eval_env.step(action)
+			state, reward, done = eval_env.step(action)
 			avg_reward += reward
 
 	avg_reward /= eval_episodes
@@ -64,20 +72,20 @@ if __name__ == "__main__":
 	if args.save_model and not os.path.exists("./models"):
 		os.makedirs("./models")
 
-#	env = gym.make(args.env)
+# 	env = gym.make(args.env)
 	env = trade_env()
 	trade_fees = False
 	print('trade_fees:', trade_fees)
 	env.trade_fees = trade_fees
 
 	# Set seeds
-	env.seed(args.seed)
-	torch.manual_seed(args.seed)
-	np.random.seed(args.seed)
+# 	env.seed(args.seed)
+# 	torch.manual_seed(args.seed)
+# 	np.random.seed(args.seed)
 	
-	state_dim = env.observation_space.shape[0]
-	action_dim = env.action_space.shape[0] 
-	max_action = float(env.action_space.high[0])
+	state_dim = len(env.reset())#env.observation_space.shape[0]
+	action_dim = 1#env.action_space.shape[0] 
+	max_action = 1#float(env.action_space.high[0])
 
 	kwargs = {
 		"state_dim": state_dim,
@@ -119,7 +127,8 @@ if __name__ == "__main__":
 
 		# Select action randomly or according to policy
 		if t < args.start_timesteps:
-			action = env.action_space.sample()
+ 			# action = env.action_space.sample()
+ 			action = np.array([np.random.random_sample()*2-1])
 		else:
 			action = (
 				policy.select_action(np.array(state))
@@ -127,8 +136,8 @@ if __name__ == "__main__":
 			).clip(-max_action, max_action)
 
 		# Perform action
-		next_state, reward, done, _ = env.step(action) 
-		done_bool = float(done) if episode_timesteps < env._max_episode_steps else 0
+		next_state, reward, done = env.step(action) 
+		done_bool = float(done)# if episode_timesteps < env._max_episode_steps else 0
 
 		# Store data in replay buffer
 		replay_buffer.add(state, action, next_state, reward, done_bool)
@@ -144,7 +153,7 @@ if __name__ == "__main__":
 			# +1 to account for 0 indexing. +0 on ep_timesteps since it will increment +1 even if done=True
 			print(f"Total T: {t+1} Episode Num: {episode_num+1} Episode T: {episode_timesteps} Reward: {episode_reward:.3f}")
 			# Reset environment
-			state, done = env.reset(), False
+			state, done = env.reset(training=True), False
 			episode_reward = 0
 			episode_timesteps = 0
 			episode_num += 1 
@@ -154,3 +163,6 @@ if __name__ == "__main__":
 			evaluations.append(eval_policy(policy, args.env, args.seed))
 			np.save(f"./results/{file_name}", evaluations)
 			if args.save_model: policy.save(f"./models/{file_name}")
+
+	plt.figure()
+	plt.plot(evaluations)

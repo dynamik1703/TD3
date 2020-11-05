@@ -47,7 +47,7 @@ class MyEnv():
 #        stock_list += DJI_stock_list # Dax Auswahl + DJI
 #        stock_list += Euro_stock_list # Dax Auswahl + Euro
         
-#        stock_list = ['DAI.DE','DAI.DE'] # nur eine Aktie
+        stock_list = ['DAI.DE','DAI.DE'] # nur eine Aktie
         
         self.stock_list = stock_list # for debugging
         
@@ -90,6 +90,7 @@ class MyEnv():
         window_alltime = 30
 #        self.alltime_high_bit = self.df_merge.rolling(window_alltime).max()==self.df_merge.cummmax()
         self.alltime_high_bit = self.df_merge.rolling(window_alltime).max().values==np.maximum.accumulate(self.df_merge.values) # müsste eigentlich mit pandas cummax gehen        
+
         
         # Zustand initialisieren
 #        self.init_day = init_day
@@ -393,6 +394,9 @@ class MyEnv():
             return 1/(1 + np.exp(-action*20 + 10)) 
         else:
             return -(1/(1 + np.exp(action*20 + 10)))
+        
+    def seed(self, seed=0):
+        pass
     
 if __name__ == '__main__':
     
